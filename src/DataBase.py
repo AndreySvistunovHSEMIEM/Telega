@@ -34,11 +34,11 @@ async def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )''')
-        await db.execute('''CREATE TABLE IF NOT EXISTS user_health (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            health_status TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (user_id)
-        )''')
+        # await db.execute('''CREATE TABLE IF NOT EXISTS user_health (
+        #     id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #     user_id INTEGER NOT NULL,
+        #     health_status TEXT NOT NULL,
+        #     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        #     FOREIGN KEY (user_id) REFERENCES users (user_id)
+        # )''')
         await db.commit()

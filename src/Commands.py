@@ -160,7 +160,7 @@ async def ask_height(message: types.Message, state: FSMContext):
 
 @router.message(Register.waiting_for_weight)
 async def ask_weight(message: types.Message, state: FSMContext):
-    if not message.text.replace('.', '', 1).isdigit() or not (35 <= float(message.text) <= 230):  # Allow decimal values
+    if not message.text.replace('.', '', 1).isdigit() or not (35 <= float(message.text) <= 230):
         await message.answer("Пожалуйста, введите корректный вес в кг.")
         return
 
@@ -169,7 +169,6 @@ async def ask_weight(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     username = user_data["username"]
 
-    # Save to database
     try:
         async with aiosqlite.connect("rehab_bot.db") as db:
             await db.execute(
@@ -226,6 +225,10 @@ async def handle_free_text_message(message: types.Message, state: FSMContext):
                                          (user_id,))
             user_data = await user_data.fetchone()
 
+            # Запись действия пользователя в базу данных
+            await db.execute("INSERT INTO user_actions (user_id, action) VALUES (?, ?)", (user_id, text))
+            await db.commit()
+
         if user_data:
             full_name, injury_type, height, weight = user_data
             payload = Chat(
@@ -243,7 +246,8 @@ async def handle_free_text_message(message: types.Message, state: FSMContext):
             await message.answer("Пожалуйста, зарегистрируйтесь, чтобы взаимодействовать с ботом.")
     else:
         await message.answer(
-            "К сожалению, я не поддерживаю взаимодействие с чем-либо, кроме текстовых сообщений. Пожалуйста, отправьте текстовый вопрос.")
+            "К сожалению, я не поддерживаю взаимодействие с чем-либо, кроме текстовых сообщений. Пожалуйста, отправьте текстовый вопрос."
+        )
 
 
 @router.message()
@@ -372,24 +376,30 @@ async def handle_health_response(message: types.Message, state: FSMContext):
     if user_data:
         health_status = message.text.strip()
         async with aiosqlite.connect("rehab_bot.db") as db:
-            await db.execute("INSERT INTO user_health (user_id, health_status) VALUES (?, ?)", (user_id, health_status))
+            await db.execute(
+                "INSERT INTO user_health (user_id, health_status) VALUES (?, ?)",
+                (user_id, health_status)
+            )
             await db.commit()
+
             action = f"Отправил отзыв о самочувствии: {health_status}"
-            await db.execute("INSERT INTO user_actions (user_id, action) VALUES (?, ?)", (user_id, action))
+            await db.execute(
+                "INSERT INTO user_actions (user_id, action) VALUES (?, ?)",
+                (user_id, action)
+            )
             await db.commit()
 
             await message.answer("Спасибо! Ваше самочувствие записано.")
     else:
         await message.answer("Вы не зарегистрированы. Пожалуйста, зарегистрируйтесь для участия в опросе.")
 
+# @scheduler.scheduled_job("interval", minutes=1)
+# async def scheduled_health_check():
+#     logging.info("Запускается опрос самочувствия.")
+#     await health_check()
 
-@scheduler.scheduled_job("interval", minutes=10)
-async def scheduled_health_check():
-    logging.info("Запускается опрос самочувствия.")
-    await health_check()
 
-
-@scheduler.scheduled_job("interval",  minutes=5)
+@scheduler.scheduled_job("interval",  minutes=3)
 async def daily_reminder():
     logging.info("Запускается функция daily_reminder")
     async with aiosqlite.connect("rehab_bot.db") as db:
